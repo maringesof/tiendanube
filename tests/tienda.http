@@ -1,0 +1,64 @@
+### Pruebas con la extensión REST Client de VS Code
+@gateway = http://localhost:8080
+# Pegue aquí un ID token de Firebase (ver README, sección "Obtener un token")
+@token = PEGAR_TOKEN
+
+### 1. Salud del gateway (pública) -> 200
+GET {{gateway}}/health
+
+### 2. Ruta protegida SIN token -> 401
+GET {{gateway}}/api/products
+
+### 3. Token falso -> 401
+GET {{gateway}}/api/orders
+Authorization: Bearer token-falso
+
+### 4. Listar productos (MongoDB) -> 200
+GET {{gateway}}/api/products
+Authorization: Bearer {{token}}
+
+### 5. Crear producto (MongoDB) -> 201
+POST {{gateway}}/api/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Audífonos", "category": "Tecnología", "price": 80000, "stock": 5 }
+
+### 6. Crear pedido (valida producto y stock en MongoDB, guarda en Oracle) -> 201
+POST {{gateway}}/api/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "product_id": "PEGAR_ID_PRODUCTO", "quantity": 2, "customer_name": "Cliente Demo" }
+
+### 7. Pedido con producto inexistente -> 400
+POST {{gateway}}/api/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "product_id": "000000000000000000000000", "quantity": 1, "customer_name": "Cliente Demo" }
+
+### 8. Listar pedidos (Oracle) -> 200
+GET {{gateway}}/api/orders
+Authorization: Bearer {{token}}
+
+### 9. Cambiar estado del pedido -> 200
+PATCH {{gateway}}/api/orders/1/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "status": "enviado" }
+
+### 10. Estado de los microservicios (prueba de fallas) -> 200
+GET {{gateway}}/health/services
+
+### 11. Crear cliente (MongoDB, base tienda_clientes) -> 201
+POST {{gateway}}/api/customers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Cliente Demo", "email": "demo@correo.com", "phone": "3000000000", "city": "Bogotá" }
+
+### 12. Listar clientes -> 200
+GET {{gateway}}/api/customers
+Authorization: Bearer {{token}}

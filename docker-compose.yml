@@ -1,0 +1,57 @@
+# TiendaNube: 4 contenedores independientes en la red tienda-net.
+# Las imágenes se pueden construir (build) o descargar de Docker Hub (pull)
+# cambiando solo las variables *_IMAGE del archivo .env de esta carpeta.
+name: tiendanube
+
+services:
+  products-service:            # Microservicio 1 -> MongoDB Atlas
+    build: ./products-service
+    image: ${PRODUCTS_IMAGE:-tiendanube/products-service:1.0}
+    env_file: ./products-service/.env
+    ports:
+      - "127.0.0.1:8001:8001"
+    restart: unless-stopped
+    networks: [tienda-net]
+
+  orders-service:              # Microservicio 2 -> Oracle Autonomous Database
+    build: ./orders-service
+    image: ${ORDERS_IMAGE:-tiendanube/orders-service:1.0}
+    env_file: ./orders-service/.env
+    ports:
+      - "127.0.0.1:8002:8002"
+    depends_on: [products-service]
+    restart: unless-stopped
+    networks: [tienda-net]
+
+  customers-service:           # Microservicio 3 -> MongoDB Atlas (base propia)
+    build: ./customers-service
+    image: ${CUSTOMERS_IMAGE:-tiendanube/customers-service:1.0}
+    env_file: ./customers-service/.env
+    ports:
+      - "127.0.0.1:8003:8003"
+    restart: unless-stopped
+    networks: [tienda-net]
+
+  api-gateway:                 # Valida el token de Firebase y enruta
+    build: ./api-gateway
+    image: ${GATEWAY_IMAGE:-tiendanube/api-gateway:1.0}
+    env_file: ./api-gateway/.env
+    ports:
+      - "8080:8080"
+    depends_on: [products-service, orders-service, customers-service]
+    restart: unless-stopped
+    networks: [tienda-net]
+
+  frontend:                    # React + Nginx
+    build: ./frontend
+    image: ${FRONTEND_IMAGE:-tiendanube/frontend:1.0}
+    env_file: ./frontend/.env
+    ports:
+      - "8088:80"
+    depends_on: [api-gateway]
+    restart: unless-stopped
+    networks: [tienda-net]
+
+networks:
+  tienda-net:
+    name: tienda-net
